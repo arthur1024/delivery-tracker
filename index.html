@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f1923" />
+  <meta name="description" content="外送收入追蹤器 — 分析最賺錢的外送時段" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="外送追蹤" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>外送收入追蹤器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0f14;
+      --surface: #111820;
+      --surface2: #1a2433;
+      --border: #1e2d3d;
+      --accent: #00d4aa;
+      --accent2: #ff6b35;
+      --accent3: #ffd166;
+      --danger: #ff4757;
+      --text: #e8f0f7;
+      --text2: #7a9bb5;
+      --text3: #3d5a73;
+      --mono: 'DM Mono', monospace;
+      --sans: 'Noto Sans TC', sans-serif;
+      --radius: 12px;
+      --radius-lg: 20px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LAYOUT ── */
+    #app {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 0 100px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(10,15,20,0.8);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      color: var(--text2);
+      font-weight: 400;
+      font-family: var(--mono);
+    }
+
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 0 0;
+    }
+
+    .week-label {
+      flex: 1;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .nav-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .today-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: var(--mono);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .today-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      padding: 20px 20px 12px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* ── WEEKLY SUMMARY CARD ── */
+    .summary-card {
+      margin: 0 16px 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, rgba(0,212,170,0.12), transparent 70%);
+      pointer-events: none;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .summary-item {}
+
+    .summary-val {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .summary-val.orange { color: var(--accent2); }
+    .summary-val.yellow { color: var(--accent3); }
+    .summary-val.white { color: var(--text); }
+
+    .summary-label {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 4px;
+      font-family: var(--mono);
+    }
+
+    /* ── INSIGHT TAGS ── */
+    .insights {
+      margin: 12px 16px 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      padding: 6px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-family: var(--mono);
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .tag.best { background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.3); color: var(--accent); }
+    .tag.worst { background: rgba(255,71,87,0.08); border-color: rgba(255,71,87,0.3); color: var(--danger); }
+    .tag.tip { background: rgba(255,209,102,0.08); border-color: rgba(255,209,102,0.3); color: var(--accent3); }
+
+    /* ── BAR CHART ── */
+    .chart-wrap {
+      margin: 0 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+
+    .chart-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 3px;
+    }
+
+    .chart-tab {
+      flex: 1;
+      padding: 6px;
+      text-align: center;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      background: transparent;
+    }
+
+    .chart-tab.active {
+      background: var(--surface2);
+      color: var(--accent);
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 120px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar-val {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text2);
+    }
+
+    .bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      min-height: 2px;
+      position: relative;
+    }
+
+    .bar.best-bar { background: var(--accent); box-shadow: 0 0 12px rgba(0,212,170,0.4); }
+    .bar.worst-bar { background: var(--danger); }
+    .bar.normal-bar { background: var(--surface2); border: 1px solid var(--border); }
+    .bar.no-data { background: var(--border); opacity: 0.4; }
+
+    .bar-day {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text3);
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+      width: 100%;
+      text-align: center;
+    }
+
+    .bar-day.best-day { color: var(--accent); }
+    .bar-day.worst-day { color: var(--danger); }
+
+    /* ── DAY LIST ── */
+    .day-list {
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .day-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .day-card:hover { border-color: var(--accent); transform: translateX(2px); }
+    .day-card.has-data { border-left: 3px solid var(--accent); }
+    .day-card.best-day-card { border-left: 3px solid var(--accent); }
+    .day-card.worst-day-card { border-left: 3px solid var(--danger); }
+
+    .day-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+
+    .day-badge .dow {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text2);
+    }
+
+    .day-badge .dom {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .day-badge.today-badge {
+      background: rgba(0,212,170,0.12);
+      border: 1px solid rgba(0,212,170,0.3);
+    }
+
+    .day-badge.today-badge .dom { color: var(--accent); }
+
+    .day-info { flex: 1; min-width: 0; }
+
+    .day-income {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .day-income.empty { color: var(--text3); font-size: 13px; }
+
+    .day-meta {
+      display: flex;
+      gap: 10px;
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+
+    .meta-chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .day-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .edit-btn, .del-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .del-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      display: flex;
+      justify-content: center;
+      padding: 12px 16px 24px;
+      background: linear-gradient(transparent, var(--bg) 50%);
+    }
+
+    .add-btn {
+      background: var(--accent);
+      color: #0a0f14;
+      border: none;
+      border-radius: 100px;
+      padding: 14px 32px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 24px rgba(0,212,170,0.35);
+      transition: all 0.15s;
+      letter-spacing: 0.02em;
+    }
+
+    .add-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,212,170,0.45); }
+    .add-btn:active { transform: translateY(0); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      z-index: 500;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.34,1.2,0.64,1);
+    }
+
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text2);
+      margin-bottom: 6px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text3); }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 13px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text2);
+      font-family: var(--sans);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-cancel:hover { border-color: var(--text2); color: var(--text); }
+
+    .btn-save {
+      flex: 2;
+      padding: 13px;
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #0a0f14;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-save:hover { filter: brightness(1.1); }
+
+    /* ── AUTO CALC PREVIEW ── */
+    .calc-preview {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .calc-item {}
+    .calc-val { font-family: var(--mono); font-size: 16px; color: var(--accent); font-weight: 500; }
+    .calc-lbl { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+    /* ── EMPTY STATE ── */
+    .empty-week {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text3);
+    }
+
+    .empty-week .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-week p { font-size: 14px; font-family: var(--mono); }
+
+    /* ── INSTALL BANNER ── */
+    .install-banner {
+      margin: 0 16px 4px;
+      background: rgba(0,212,170,0.08);
+      border: 1px solid rgba(0,212,170,0.25);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .install-banner button {
+      margin-left: auto;
+      background: var(--accent);
+      color: #0a0f14;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: var(--sans);
+    }
+
+    .install-banner .close-banner {
+      background: transparent;
+      color: var(--text2);
+      padding: 0;
+      font-size: 16px;
+      min-width: 24px;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-family: var(--mono);
+      white-space: nowrap;
+      z-index: 999;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: rgba(0,212,170,0.4); color: var(--accent); }
+    .toast.error { border-color: rgba(255,71,87,0.4); color: var(--danger); }
+
+    @media (min-width: 480px) {
+      .modal-overlay { align-items: center; }
+      .modal { border-radius: var(--radius-lg); margin: 16px; }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">🛵</div>
+        <div>
+          <div class="logo-text">外送追蹤器</div>
+          <div class="logo-sub">DELIVERY TRACKER</div>
+        </div>
+      </div>
+    </div>
+    <div class="week-nav">
+      <button class="nav-btn" id="prevWeek">‹</button>
+      <div class="week-label" id="weekLabel">本週</div>
+      <button class="today-btn" id="toToday">今天</button>
+      <button class="nav-btn" id="nextWeek">›</button>
+    </div>
+  </header>
+
+  <div id="installBanner" style="display:none" class="install-banner">
+    <span>📲</span>
+    <span style="color:var(--text2)">安裝到主畫面，離線也能用</span>
+    <button id="installBtn">安裝</button>
+    <button class="close-banner" id="closeBanner">×</button>
+  </div>
+
+  <div class="section-title">本週總覽</div>
+
+  <div class="summary-card" id="summaryCard">
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-val" id="sumIncome">—</div>
+        <div class="summary-label">總收入 (元)</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-val orange" id="sumHourly">—</div>
+        <div class="summary-label">平均時薪</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-val yellow" id="sumOrders">—</div>
+        <div class="summary-label">總單數</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-val white" id="sumHours">—</div>
+        <div class="summary-label">總上線時數</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insights" id="insightTags"></div>
+
+  <div class="section-title" style="padding-top:16px">每日比較</div>
+
+  <div class="chart-wrap">
+    <div class="chart-tabs">
+      <button class="chart-tab active" data-metric="income">收入</button>
+      <button class="chart-tab" data-metric="hourly">時薪</button>
+      <button class="chart-tab" data-metric="avg">均價</button>
+      <button class="chart-tab" data-metric="orders">單數</button>
+    </div>
+    <div class="bar-chart" id="barChart"></div>
+  </div>
+
+  <div class="section-title" style="padding-top:16px">每日紀錄</div>
+
+  <div class="day-list" id="dayList"></div>
+</div>
+
+<!-- Bottom FAB -->
+<div class="bottom-nav">
+  <button class="add-btn" id="addBtn">
+    <span style="font-size:18px">+</span> 新增今日紀錄
+  </button>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">🛵 新增紀錄</div>
+    <div class="form-group">
+      <label class="form-label">日期</label>
+      <input type="date" class="form-input" id="inputDate" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">上線時數 (小時)</label>
+        <input type="number" class="form-input" id="inputHours" placeholder="例：5.5" min="0" max="24" step="0.5" inputmode="decimal" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">完成單數</label>
+        <input type="number" class="form-input" id="inputOrders" placeholder="0" min="0" step="1" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">總收入 (元)</label>
+      <input type="number" class="form-input" id="inputIncome" placeholder="0" min="0" step="1" inputmode="numeric" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">備註 (選填)</label>
+      <input type="text" class="form-input" id="inputNote" placeholder="天氣好、活動加成..." />
+    </div>
+    <div class="calc-preview" id="calcPreview">
+      <div class="calc-item"><div class="calc-val" id="prevHourly">—</div><div class="calc-lbl">時薪 (元/h)</div></div>
+      <div class="calc-item"><div class="calc-val" id="prevAvg">—</div><div class="calc-lbl">每單均價</div></div>
+      <div class="calc-item"><div class="calc-val" id="prevTotal">—</div><div class="calc-lbl">預估收入確認</div></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="cancelBtn">取消</button>
+      <button class="btn-save" id="saveBtn">儲存紀錄</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTS ──
+const DAYS_ZH = ['日','一','二','三','四','五','六'];
+const DAYS_FULL = ['週日','週一','週二','週三','週四','週五','週六'];
+const STORAGE_KEY = 'delivery_records_v2';
+
+// ── STATE ──
+let records = [];
+let currentWeekOffset = 0;
+let editingId = null;
+let chartMetric = 'income';
+let deferredInstall = null;
+
+// ── STORAGE ──
+function loadRecords() {
+  try { records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { records = []; }
+}
+
+function saveRecords() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+// ── DATE HELPERS ──
+function getWeekRange(offset = 0) {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - day + (day === 0 ? -6 : 1) + offset * 7);
+  monday.setHours(0, 0, 0, 0);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
+
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function todayStr() { return toDateStr(new Date()); }
+
+function fmtHours(h) {
+  if (h === null || h === undefined) return '—';
+  const hrs = Math.floor(h);
+  const mins = Math.round((h - hrs) * 60);
+  return mins > 0 ? `${hrs}h${mins}m` : `${hrs}h`;
+}
+
+function fmtMoney(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return Math.round(n).toLocaleString();
+}
+
+// ── RENDER ──
+function render() {
+  const days = getWeekRange(currentWeekOffset);
+  renderWeekLabel(days);
+  const weekData = getWeekData(days);
+  renderSummary(weekData);
+  renderInsights(weekData);
+  renderChart(weekData);
+  renderDayList(days, weekData);
+}
+
+function renderWeekLabel(days) {
+  const s = days[0], e = days[6];
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  const offset = currentWeekOffset;
+  const label = offset === 0 ? `本週  ${fmt(s)} – ${fmt(e)}` :
+                offset === -1 ? `上週  ${fmt(s)} – ${fmt(e)}` :
+                `${fmt(s)} – ${fmt(e)}`;
+  document.getElementById('weekLabel').textContent = label;
+}
+
+function getWeekData(days) {
+  return days.map(d => {
+    const ds = toDateStr(d);
+    const r = records.find(r => r.date === ds);
+    if (!r) return { date: ds, day: d, hasData: false };
+    const hours = r.hours || null;
+    const hourly = hours > 0 ? r.income / hours : null;
+    const avg = r.orders > 0 ? r.income / r.orders : null;
+    return { date: ds, day: d, hasData: true, income: r.income, orders: r.orders, hours, hourly, avg, note: r.note, id: r.id };
+  });
+}
+
+function renderSummary(weekData) {
+  const active = weekData.filter(d => d.hasData);
+  if (!active.length) {
+    document.getElementById('sumIncome').textContent = '—';
+    document.getElementById('sumHourly').textContent = '—';
+    document.getElementById('sumOrders').textContent = '—';
+    document.getElementById('sumHours').textContent = '—';
+    return;
+  }
+  const totalIncome = active.reduce((s, d) => s + d.income, 0);
+  const totalHours = active.reduce((s, d) => s + (d.hours || 0), 0);
+  const totalOrders = active.reduce((s, d) => s + d.orders, 0);
+  const avgHourly = totalHours > 0 ? totalIncome / totalHours : null;
+
+  document.getElementById('sumIncome').textContent = fmtMoney(totalIncome);
+  document.getElementById('sumHourly').textContent = avgHourly ? `$${fmtMoney(avgHourly)}` : '—';
+  document.getElementById('sumOrders').textContent = totalOrders;
+  document.getElementById('sumHours').textContent = fmtHours(totalHours);
+}
+
+function renderInsights(weekData) {
+  const el = document.getElementById('insightTags');
+  el.innerHTML = '';
+  const active = weekData.filter(d => d.hasData && d.hours > 0);
+  if (active.length < 2) return;
+
+  const byHourly = [...active].sort((a,b) => b.hourly - a.hourly);
+  const best = byHourly[0];
+  const worst = byHourly[byHourly.length - 1];
+
+  el.innerHTML = `
+    <div class="tag best">🏆 ${DAYS_FULL[best.day.getDay()]} 最賺  $${fmtMoney(best.hourly)}/h</div>
+    <div class="tag worst">⚠️ ${DAYS_FULL[worst.day.getDay()]} 最低  $${fmtMoney(worst.hourly)}/h</div>
+  `;
+
+  // Tip
+  const bestIncome = [...active].sort((a,b) => b.income - a.income)[0];
+  if (bestIncome && bestIncome.hours) {
+    const tip = `總收入最高 ${DAYS_FULL[bestIncome.day.getDay()]}，共 $${fmtMoney(bestIncome.income)}`;
+    el.innerHTML += `<div class="tag tip">💡 ${tip}</div>`;
+  }
+}
+
+function renderChart(weekData) {
+  const el = document.getElementById('barChart');
+  const active = weekData.filter(d => d.hasData);
+
+  let maxVal = 0;
+  const vals = weekData.map(d => {
+    if (!d.hasData) return null;
+    const v = chartMetric === 'income' ? d.income :
+              chartMetric === 'hourly' ? d.hourly :
+              chartMetric === 'avg'    ? d.avg :
+              d.orders;
+    if (v > maxVal) maxVal = v;
+    return v;
+  });
+
+  const byMetric = active.filter(d => {
+    const v = chartMetric === 'income' ? d.income :
+              chartMetric === 'hourly' ? d.hourly :
+              chartMetric === 'avg'    ? d.avg : d.orders;
+    return v !== null;
+  }).sort((a,b) => {
+    const va = chartMetric === 'income' ? a.income : chartMetric === 'hourly' ? a.hourly : chartMetric === 'avg' ? a.avg : a.orders;
+    const vb = chartMetric === 'income' ? b.income : chartMetric === 'hourly' ? b.hourly : chartMetric === 'avg' ? b.avg : b.orders;
+    return vb - va;
+  });
+
+  const bestDate = byMetric[0]?.date;
+  const worstDate = byMetric[byMetric.length - 1]?.date;
+
+  el.innerHTML = weekData.map((d, i) => {
+    const v = vals[i];
+    const pct = maxVal > 0 && v !== null ? Math.max((v / maxVal) * 100, 3) : 0;
+    const isBest = d.date === bestDate && active.length > 1;
+    const isWorst = d.date === worstDate && active.length > 1;
+    const noData = !d.hasData;
+
+    const barClass = noData ? 'no-data' : isBest ? 'best-bar' : isWorst ? 'worst-bar' : 'normal-bar';
+    const dayClass = noData ? '' : isBest ? 'best-day' : isWorst ? 'worst-day' : '';
+    const valText = v !== null ? (chartMetric === 'orders' ? v : `$${Math.round(v) >= 1000 ? (Math.round(v)/1000).toFixed(1)+'k' : Math.round(v)}`) : '';
+
+    return `
+      <div class="bar-col">
+        <div class="bar-val">${valText}</div>
+        <div class="bar ${barClass}" style="height:${pct}%"></div>
+        <div class="bar-day ${dayClass}">${DAYS_ZH[d.day.getDay()]}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDayList(days, weekData) {
+  const el = document.getElementById('dayList');
+  const today = todayStr();
+  const active = weekData.filter(d => d.hasData && d.hours > 0);
+  const byHourly = [...active].sort((a,b) => b.hourly - a.hourly);
+  const bestDate = byHourly[0]?.date;
+  const worstDate = byHourly[byHourly.length - 1]?.date;
+
+  el.innerHTML = weekData.map(d => {
+    const isToday = d.date === today;
+    const isBest = d.date === bestDate && active.length > 1;
+    const isWorst = d.date === worstDate && active.length > 1;
+
+    const cardClass = d.hasData ? (isBest ? 'best-day-card' : isWorst ? 'worst-day-card' : 'has-data') : '';
+    const badgeClass = isToday ? 'today-badge' : '';
+
+    const badgeIcon = isBest ? '🏆' : isWorst ? '⚠️' : '';
+
+    if (d.hasData) {
+      return `
+        <div class="day-card ${cardClass}" data-date="${d.date}">
+          <div class="day-badge ${badgeClass}">
+            <div class="dow">${DAYS_FULL[d.day.getDay()].replace('週','')}</div>
+            <div class="dom">${d.day.getDate()}</div>
+          </div>
+          <div class="day-info">
+            <div class="day-income">$${fmtMoney(d.income)} ${badgeIcon}</div>
+            <div class="day-meta">
+              <span class="meta-chip">⏱ ${fmtHours(d.hours)}</span>
+              <span class="meta-chip">💰 $${fmtMoney(d.hourly)}/h</span>
+              <span class="meta-chip">📦 ${d.orders}單</span>
+              ${d.avg ? `<span class="meta-chip">均$${fmtMoney(d.avg)}</span>` : ''}
+              ${d.note ? `<span class="meta-chip">💬 ${d.note}</span>` : ''}
+            </div>
+          </div>
+          <div class="day-actions">
+            <button class="edit-btn" data-id="${d.id}" title="編輯">✎</button>
+            <button class="del-btn" data-id="${d.id}" title="刪除">✕</button>
+          </div>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="day-card" data-date="${d.date}" data-empty="true">
+          <div class="day-badge ${badgeClass}">
+            <div class="dow">${DAYS_FULL[d.day.getDay()].replace('週','')}</div>
+            <div class="dom">${d.day.getDate()}</div>
+          </div>
+          <div class="day-info">
+            <div class="day-income empty">${isToday ? '點擊新增今日紀錄' : '無紀錄'}</div>
+          </div>
+          ${isToday ? '<span style="font-size:20px;color:var(--text3)">+</span>' : ''}
+        </div>
+      `;
+    }
+  }).join('');
+
+  // Events
+  el.querySelectorAll('[data-empty="true"]').forEach(card => {
+    card.addEventListener('click', () => openModal(null, card.dataset.date));
+  });
+
+  el.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); openModal(btn.dataset.id); });
+  });
+
+  el.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteRecord(btn.dataset.id); });
+  });
+}
+
+// ── MODAL ──
+function openModal(id = null, prefillDate = null) {
+  editingId = id;
+  const modal = document.getElementById('modalOverlay');
+  const title = document.getElementById('modalTitle');
+
+  if (id) {
+    const r = records.find(r => r.id === id);
+    if (!r) return;
+    title.textContent = '✎ 編輯紀錄';
+    document.getElementById('inputDate').value = r.date;
+    document.getElementById('inputHours').value = r.hours || '';
+    document.getElementById('inputIncome').value = r.income;
+    document.getElementById('inputOrders').value = r.orders;
+    document.getElementById('inputNote').value = r.note || '';
+  } else {
+    title.textContent = '🛵 新增紀錄';
+    document.getElementById('inputDate').value = prefillDate || todayStr();
+    document.getElementById('inputHours').value = '';
+    document.getElementById('inputIncome').value = '';
+    document.getElementById('inputOrders').value = '';
+    document.getElementById('inputNote').value = '';
+  }
+
+  updateCalcPreview();
+  modal.classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function updateCalcPreview() {
+  const hours = parseFloat(document.getElementById('inputHours').value) || 0;
+  const income = parseFloat(document.getElementById('inputIncome').value) || 0;
+  const orders = parseInt(document.getElementById('inputOrders').value) || 0;
+
+  const hourly = hours > 0 ? income / hours : null;
+  const avg = orders > 0 ? income / orders : null;
+
+  document.getElementById('prevHourly').textContent = hourly !== null ? `$${fmtMoney(hourly)}` : '—';
+  document.getElementById('prevAvg').textContent = avg !== null ? `$${fmtMoney(avg)}` : '—';
+  document.getElementById('prevTotal').textContent = income > 0 ? `$${fmtMoney(income)}` : '—';
+}
+
+function saveRecord() {
+  const date = document.getElementById('inputDate').value;
+  const hours = parseFloat(document.getElementById('inputHours').value);
+  const income = parseFloat(document.getElementById('inputIncome').value);
+  const orders = parseInt(document.getElementById('inputOrders').value);
+  const note = document.getElementById('inputNote').value.trim();
+
+  if (!date) { showToast('請選擇日期', 'error'); return; }
+  if (isNaN(hours) || hours <= 0) { showToast('請輸入有效上線時數', 'error'); return; }
+  if (isNaN(income) || income < 0) { showToast('請輸入有效收入', 'error'); return; }
+  if (isNaN(orders) || orders < 0) { showToast('請輸入有效單數', 'error'); return; }
+
+  if (editingId) {
+    const idx = records.findIndex(r => r.id === editingId);
+    if (idx >= 0) records[idx] = { ...records[idx], date, hours, income, orders, note };
+  } else {
+    // Check duplicate date
+    const existing = records.findIndex(r => r.date === date);
+    if (existing >= 0) {
+      // Update existing
+      records[existing] = { ...records[existing], date, hours, income, orders, note };
+    } else {
+      records.push({ id: Date.now().toString(), date, hours, income, orders, note });
+    }
+  }
+
+  saveRecords();
+  closeModal();
+  render();
+  showToast('✓ 紀錄已儲存', 'success');
+}
+
+function deleteRecord(id) {
+  if (!confirm('確定要刪除這筆紀錄？')) return;
+  records = records.filter(r => r.id !== id);
+  saveRecords();
+  render();
+  showToast('已刪除', '');
+}
+
+// ── TOAST ──
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── EVENTS ──
+document.getElementById('prevWeek').addEventListener('click', () => { currentWeekOffset--; render(); });
+document.getElementById('nextWeek').addEventListener('click', () => { currentWeekOffset++; render(); });
+document.getElementById('toToday').addEventListener('click', () => { currentWeekOffset = 0; render(); });
+document.getElementById('addBtn').addEventListener('click', () => openModal());
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+document.getElementById('saveBtn').addEventListener('click', saveRecord);
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+['inputHours','inputIncome','inputOrders'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateCalcPreview);
+});
+
+document.querySelectorAll('.chart-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    chartMetric = btn.dataset.metric;
+    renderChart(getWeekData(getWeekRange(currentWeekOffset)));
+  });
+});
+
+// ── PWA INSTALL ──
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  const { outcome } = await deferredInstall.userChoice;
+  if (outcome === 'accepted') document.getElementById('installBanner').style.display = 'none';
+});
+
+document.getElementById('closeBanner')?.addEventListener('click', () => {
+  document.getElementById('installBanner').style.display = 'none';
+});
+
+// ── INIT ──
+loadRecords();
+render();
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

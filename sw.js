@@ -1,5 +1,5 @@
 // Service Worker — 外送追蹤器
-const CACHE_NAME = 'delivery-tracker-v1';
+const CACHE_NAME = 'delivery-tracker-v3';
 const ASSETS = [
   './',
   './index.html',
